@@ -1,0 +1,477 @@
+﻿Build1=Default,b4a.example
+File1=back.png
+File10=main.bal
+File11=measure_btn.png
+File12=nuetral.png
+File13=right.png
+File14=roverMode.png
+File15=slider_off.png
+File16=slider_on.png
+File17=snd_btn_dn.png
+File18=snd_btn_up.png
+File19=start.bal
+File2=controller.bal
+File20=up.png
+File3=down.png
+File4=left.png
+File5=light_grn.png
+File6=light_off.png
+File7=light_red.png
+File8=lightMode.png
+File9=lux_btn.png
+FileGroup1=Default Group
+FileGroup10=Default Group
+FileGroup11=Default Group
+FileGroup12=Default Group
+FileGroup13=Default Group
+FileGroup14=Default Group
+FileGroup15=Default Group
+FileGroup16=Default Group
+FileGroup17=Default Group
+FileGroup18=Default Group
+FileGroup19=Default Group
+FileGroup2=Default Group
+FileGroup20=Default Group
+FileGroup3=Default Group
+FileGroup4=Default Group
+FileGroup5=Default Group
+FileGroup6=Default Group
+FileGroup7=Default Group
+FileGroup8=Default Group
+FileGroup9=Default Group
+Group=Default Group
+IconFile=
+Library1=core
+Library2=ble2
+Library3=byteconverter
+Library4=gesturedetector
+Library5=runtimepermissions
+Library6=threading
+ManifestCode='This code will be applied to the manifest file during compilation.~\n~'You do not need to modify it in most cases.~\n~'See this link for for more information: https://www.b4x.com/forum/showthread.php?p=78136~\n~AddManifestText(~\n~<uses-sdk android:minSdkVersion="5" android:targetSdkVersion="26"/>~\n~<supports-screens android:largeScreens="true" ~\n~    android:normalScreens="true" ~\n~    android:smallScreens="true" ~\n~    android:anyDensity="true"/>)~\n~SetApplicationAttribute(android:icon, "@drawable/icon")~\n~SetApplicationAttribute(android:label, "$LABEL$")~\n~CreateResourceFromFile(Macro, Themes.DarkTheme)~\n~'End of default text.~\n~
+Module1=Starter
+NumberOfFiles=20
+NumberOfLibraries=6
+NumberOfModules=1
+Version=8.5
+@EndOfDesignText@
+#Region  Project Attributes 
+	#ApplicationLabel: SkooBot Remote
+	#VersionCode: 1
+	#VersionName: 0.1
+	'SupportedOrientations possible values: unspecified, landscape or portrait.
+	#SupportedOrientations: landscape
+	#CanInstallToExternalStorage: True
+#End Region
+
+#Region  Activity Attributes 
+	#FullScreen: True
+	#IncludeTitle: True
+#End Region
+
+Sub Process_Globals
+	Public Manager As BleManager2
+	Private rp As RuntimePermissions
+End Sub
+
+Sub Globals
+	Dim const SKOOBOT_SERVICE_UUID = 		"00001523-1212-efde-1523-785feabcd123" As String
+	Dim const DATA_CHARACTERISTIC_UUID = 	"00001524-1212-efde-1523-785feabcd123" As String
+	Dim const COMMAND_CHARACTERISTIC_UUID = "00001525-1212-efde-1523-785feabcd123" As String
+	Dim const DATA2_CHARACTERISTIC_UUID = 	"00001526-1212-efde-1523-785feabcd123" As String
+	Dim const DATA128_CHARACTERISTIC_UUID = "00001527-1212-efde-1523-785feabcd123" As String
+	Dim const DATA4_CHARACTERISTIC_UUID = 	"00001528-1212-efde-1523-785feabcd123" As String
+	
+	Dim const cmd_right_30 = 0x08 As Int
+	Dim const cmd_left_30  = 0x09 As Int
+	Dim const cmd_right = 0x10 As Int
+	Dim const cmd_left  = 0x11 As Int
+	Dim const cmd_forward = 0x12 As Int
+	Dim const cmd_back  = 0x13 As Int
+	Dim const cmd_stop  = 0x14 As Int
+	Dim const cmd_stopturn = 0x15 As Int
+	Dim const cmd_buzzer = 0x17 As Int
+	Dim const cmd_distance = 0x22 As Int
+	Dim const cmd_ambient = 0x21 As Int
+	Dim const cmd_record = 0x30 As Int
+	Dim const cmd_record_pi = 0x33 As Int
+	Dim const cmd_stepmode = 0x16 As Int
+	Dim const cmd_rover = 0x40 As Int
+	Dim const cmd_rover_rev = 0x42 As Int
+	Dim const cmd_photov = 0x41 As Int
+	Dim const cmd_con_dis	= 0x23 As Int
+	
+	Dim dataListen1 As Boolean
+	Dim dataListen2 As Boolean
+	Dim dataListen4 As Boolean
+	Dim dataListen128 As Boolean
+	Dim rovMode As Boolean
+	Dim litMode As Boolean
+
+	Dim startScreen, controlScreen As Panel
+	Dim connectState As Int
+	Dim lastCommand As Byte
+	Private btnRefresh As Button
+	Private BLEListView As ListView
+	Private ConnectedServices As List
+	Private txtStatus As Label
+	Private EditText1 As EditText
+	Private EditText2 As EditText
+	Private DPad As ImageView
+	Private pnlDPad As Panel
+	Private btnDist As ImageView
+	Private btnLux As ImageView
+	Private btnSnd As ImageView
+	Private pnlSound As Panel
+	Private statusLED As ImageView
+	Private btnBackArrow As ImageView
+	Private lightSlider As ImageView
+	Private roverSlider As ImageView
+End Sub
+
+Sub Activity_Create(FirstTime As Boolean)
+	rp.CheckAndRequest(rp.PERMISSION_ACCESS_COARSE_LOCATION)
+	Wait for Activity_PermissionResult(Permission As String, Result As Boolean)
+	rp.CheckAndRequest(rp.PERMISSION_ACCESS_FINE_LOCATION)
+	Wait for Activity_PermissionResult(Permission As String, Result As Boolean)
+	If Result Then
+		Log("Got Permission")
+	Else
+		Log("No Permission")
+			
+	End If
+	Activity.LoadLayout("Main")
+	Activity.AddMenuItem("About", "About")
+	Activity.AddMenuItem("Exit", "Exit")
+	Manager.Initialize("Manager")
+	
+	startScreen.LoadLayout("Start")
+	startScreen.Visible=True
+	
+	controlScreen.LoadLayout("Controller")
+	controlScreen.Visible=False
+	
+	dataListen1 = False
+	dataListen2 = False
+	dataListen4 = False
+	dataListen128 = False
+	rovMode = False
+	litMode = False
+	
+	connectState = 0
+	BLEListView.Clear()
+	Manager.Scan(Null)
+
+	
+End Sub
+
+
+Sub About_Click
+	Msgbox("SkooBot Remote v0.1", "About")
+End Sub
+
+Sub Exit_Click
+	ExitApplication
+End Sub
+
+Sub Activity_Resume
+
+End Sub
+
+Sub Activity_Pause (UserClosed As Boolean)
+
+End Sub
+
+Sub btnRefresh_Click
+	BLEListView.Clear()
+	Manager.Scan(Null)
+End Sub
+
+Sub statusUpdate(curStatus As String)
+
+	txtStatus.Text = curStatus
+
+End Sub
+
+Sub BLEListView_ItemClick (Position As Int, Value As Object)
+	Manager.StopScan()
+	Log(Position)
+	Log(Value)
+	controlScreen.Visible = True
+	startScreen.Visible = False
+	statusLED.Bitmap = LoadBitmap(File.DirAssets, "light_off.png")
+	statusUpdate("Attempting to Connect....")
+	Manager.Connect2(Value, False)
+End Sub
+
+Sub Manager_DeviceFound (Name As String, Id As String, AdvertisingData As Map, RSSI As Double)
+	Log("Found: " & Name & ", " & Id & ", RSSI = " & RSSI & ", " & AdvertisingData)
+	
+	If Name <> Null And Name.Length > 1 And Name.Contains("Skoo") Then
+		BLEListView.AddSingleLine2(Name & " - "  & Id & " - RSSI: " & RSSI , Id)
+	End If
+	
+End Sub
+
+Sub Manager_Disconnected
+	Log("Disconnected")
+	statusUpdate("Disconnected")
+	statusLED.Bitmap = LoadBitmap(File.DirAssets, "light_red.png")
+	connectState = 0
+End Sub
+
+Sub Manager_Connected (services As List)
+	Log("Connected")
+	statusUpdate("Connected")
+	statusLED.Bitmap = LoadBitmap(File.DirAssets, "light_grn.png")
+	ConnectedServices = services
+	connectState = 1
+	For Each s As String In ConnectedServices
+		Manager.ReadData(s)
+	Next
+	Log(Manager.State)
+
+End Sub
+
+Sub Manager_DataAvailable (ServiceId As String, Characteristics As Map)
+	Dim bc As ByteConverter
+	Log(ServiceId)
+	For Each id As String In Characteristics.Keys
+		Log("    " & id)
+		Dim data() As Byte
+		Dim sData As String
+		data = Characteristics.Get(id)
+		sData = BytesToString(data, 0, data.Length, "UTF8")
+		Log(sData)
+		If id.ToUpperCase() = DATA_CHARACTERISTIC_UUID.ToUpperCase() Then
+			If dataListen1 = False Then
+				dataListen1 = True
+				Manager.SetNotify(ServiceId, id, True)
+			End If
+			If data <> Null Then
+				Dim valueStr As String
+				Dim rawVal = data(0) As Int
+				If rawVal < 0 Then
+					rawVal = rawVal + 256
+				End If
+				valueStr = rawVal
+				Log(valueStr)
+				Dim inches As Float
+				Dim tmpval As Int
+				inches = (rawVal / 25.4) * 100.0
+				tmpval = inches
+				inches = tmpval / 100.0
+				valueStr = tmpval / 100.0
+				EditText1.Text = valueStr & " inches"
+				Log(inches)
+			End If
+		End If
+		If id.ToUpperCase() = DATA2_CHARACTERISTIC_UUID.ToUpperCase() Then
+			If dataListen2 = False Then
+				dataListen2 = True
+				Manager.SetNotify(ServiceId, id, True)
+			End If
+			If data <> Null Then
+				Dim valueStr As String
+				Dim valInt As Int
+				Dim valTemp As Int
+				If data(1) < 0 Then
+					valInt = data(1) + 256
+				Else
+					valInt = data(1)
+				End If
+				If data(0) < 0 Then
+					valTemp = data(0) + 256
+				Else
+					valTemp = data(0)
+				End If
+				
+				valInt = valInt + Bit.ShiftLeft(valTemp, 8)
+				valueStr = valInt
+				EditText2.Text = valueStr & " lux"
+				Log(valueStr)
+			End If
+		End If
+		If id.ToUpperCase() = DATA128_CHARACTERISTIC_UUID.ToUpperCase() Then
+			If dataListen128 = False Then
+				dataListen128 = True
+				Manager.SetNotify(ServiceId, id, True)
+			End If
+		End If
+		If id.ToUpperCase() = DATA4_CHARACTERISTIC_UUID.ToUpperCase() Then
+'			If dataListen4 = False Then
+'				dataListen4 = True
+'				Manager.SetNotify(ServiceId, id, True)
+'			End If
+		End If
+	Next
+	
+End Sub
+
+Sub pnlDPad_Touch (Action As Int, X As Float, Y As Float)
+	Dim hDist As Int
+	Dim wDist As Int
+	Dim wQuater As Int
+	Dim hQuater As Int
+	Dim btData(1) As Byte
+	
+	'Log(Action & ", " & X & ", " & Y)
+	modeSlidersOff
+	wDist = pnlDPad.Width / 2
+	hDist = pnlDPad.Height / 2
+	wQuater = pnlDPad.Width / 4
+	hQuater = pnlDPad.Height / 4
+	
+	If connectState == 1 Then
+		'Log(wDist & " x " & hDist)
+		If Action = 0 Or Action = 2 Then
+			If X > 0 And X < wDist - wQuater And Y > hDist - hQuater And Y < hDist + hQuater Then ' Left Quarter Section
+				Log("Left")
+				DPad.Bitmap = LoadBitmap(File.DirAssets, "left.png")
+				btData(0) = cmd_left
+				If lastCommand <> btData(0) Then
+					Manager.WriteData(SKOOBOT_SERVICE_UUID, COMMAND_CHARACTERISTIC_UUID, btData)
+				End If
+			Else If X < pnlDPad.Width And X > wDist + wQuater And Y > hDist - hQuater And Y < hDist + hQuater Then ' Right Quarter Section
+				Log("Right")
+				DPad.Bitmap = LoadBitmap(File.DirAssets, "right.png")
+				btData(0) = cmd_right
+				If lastCommand <> btData(0) Then
+					Manager.WriteData(SKOOBOT_SERVICE_UUID, COMMAND_CHARACTERISTIC_UUID, btData)
+				End If
+			Else If Y > 0 And Y < hDist - hQuater And X > wDist - wQuater And X < wDist + wQuater Then
+				Log("Up")
+				DPad.Bitmap = LoadBitmap(File.DirAssets, "up.png")
+				btData(0) = cmd_forward
+				If lastCommand <> btData(0) Then
+					Manager.WriteData(SKOOBOT_SERVICE_UUID, COMMAND_CHARACTERISTIC_UUID, btData)
+				End If
+			Else If Y < pnlDPad.Height And Y > wDist + wQuater And X > wDist - wQuater And X < wDist + wQuater Then
+				Log("Down")
+				DPad.Bitmap = LoadBitmap(File.DirAssets, "down.png")
+				btData(0) = cmd_back
+				If lastCommand <> btData(0) Then
+					Manager.WriteData(SKOOBOT_SERVICE_UUID, COMMAND_CHARACTERISTIC_UUID, btData)
+				End If
+			Else
+				Log("Center - Stop")
+				DPad.Bitmap = LoadBitmap(File.DirAssets, "nuetral.png")
+				btData(0) = cmd_stop
+				If lastCommand <> btData(0) Then
+					Manager.WriteData(SKOOBOT_SERVICE_UUID, COMMAND_CHARACTERISTIC_UUID, btData)
+				End If
+			End If
+		Else If Action = 1 Then
+			Log("Stop")
+			DPad.Bitmap = LoadBitmap(File.DirAssets, "nuetral.png")
+			btData(0) = cmd_stop
+			If lastCommand <> btData(0) Then
+				Manager.WriteData(SKOOBOT_SERVICE_UUID, COMMAND_CHARACTERISTIC_UUID, btData)
+			End If
+		End If
+		
+		lastCommand = btData(0)
+	End If
+	
+End Sub
+
+Sub btnDist_Click
+	modeSlidersOff
+	If connectState == 1 Then
+		Dim btData(1) As Byte
+		If dataListen2 = True Then
+			dataListen2 = False
+			Manager.SetNotify(SKOOBOT_SERVICE_UUID, DATA_CHARACTERISTIC_UUID, True)
+		End If
+		btData(0) = cmd_distance
+		Manager.WriteData(SKOOBOT_SERVICE_UUID, COMMAND_CHARACTERISTIC_UUID, btData)
+	End If
+End Sub
+
+Sub btnLux_Click
+	modeSlidersOff
+	If connectState == 1 Then
+		Dim btData(1) As Byte
+		If dataListen1 = True Then
+			dataListen1 = False
+			Manager.SetNotify(SKOOBOT_SERVICE_UUID, DATA2_CHARACTERISTIC_UUID, True)
+		End If
+		btData(0) = cmd_ambient
+		Manager.WriteData(SKOOBOT_SERVICE_UUID, COMMAND_CHARACTERISTIC_UUID, btData)
+	End If
+End Sub
+
+Sub pnlSound_Touch (Action As Int, X As Float, Y As Float)
+	Dim btData(1) As Byte
+	modeSlidersOff
+	If connectState == 1 Then
+		If Action = 0 Then
+			btnSnd.Bitmap = LoadBitmap(File.DirAssets, "snd_btn_dn.png")
+			btData(0) = cmd_buzzer
+			Manager.WriteData(SKOOBOT_SERVICE_UUID, COMMAND_CHARACTERISTIC_UUID, btData)
+		Else If Action = 1 Then
+			btnSnd.Bitmap = LoadBitmap(File.DirAssets, "snd_btn_up.png")
+		End If
+	End If
+End Sub
+
+Sub btnBackArrow_Click
+	Manager.Disconnect()
+	startScreen.Visible = True
+	controlScreen.Visible = False
+	BLEListView.Clear()
+	Manager.Scan(Null)
+End Sub
+
+Sub modeSlidersOff
+	If rovMode = True Or litMode = True Then
+		rovMode = False
+		litMode = False
+		roverSlider.Bitmap = LoadBitmap(File.DirAssets, "slider_off.png")
+		lightSlider.Bitmap = LoadBitmap(File.DirAssets, "slider_off.png")
+	End If
+End Sub
+
+Sub lightSlider_Click
+	Dim btData(1) As Byte
+	If connectState == 1 Then
+		If litMode = False Then
+			litMode = True
+			lightSlider.Bitmap = LoadBitmap(File.DirAssets, "slider_on.png")
+			If rovMode = True Then
+				rovMode = False
+				roverSlider.Bitmap = LoadBitmap(File.DirAssets, "slider_off.png")
+			End If
+			btData(0) = cmd_photov
+			Manager.WriteData(SKOOBOT_SERVICE_UUID, COMMAND_CHARACTERISTIC_UUID, btData)
+		Else
+			litMode = False
+			lightSlider.Bitmap = LoadBitmap(File.DirAssets, "slider_off.png")
+			btData(0) = cmd_stop
+			Manager.WriteData(SKOOBOT_SERVICE_UUID, COMMAND_CHARACTERISTIC_UUID, btData)
+		End If
+	End If
+	
+End Sub
+
+Sub roverSlider_Click
+	Dim btData(1) As Byte
+	If connectState == 1 Then
+		If rovMode = False Then
+			rovMode = True
+			roverSlider.Bitmap = LoadBitmap(File.DirAssets, "slider_on.png")
+			If litMode = True Then
+				litMode = False
+				lightSlider.Bitmap = LoadBitmap(File.DirAssets, "slider_off.png")
+			End If
+			btData(0) = cmd_rover
+			Manager.WriteData(SKOOBOT_SERVICE_UUID, COMMAND_CHARACTERISTIC_UUID, btData)
+		Else
+			rovMode = False
+			roverSlider.Bitmap = LoadBitmap(File.DirAssets, "slider_off.png")
+			btData(0) = cmd_stop
+			Manager.WriteData(SKOOBOT_SERVICE_UUID, COMMAND_CHARACTERISTIC_UUID, btData)
+		End If
+	End If
+	
+End Sub
+
